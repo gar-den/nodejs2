@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+
+    <!-- Font Awesome CSS -->
+    <link
+      href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+      rel="stylesheet"
+    />
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.js"
+      integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+      integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js"
+      integrity="sha384-w1Q4orYjBQndcko6MimVbzY0tgp4pWB4lZ7lr30WKz0vr/aWKhXdBNmNb5D92v7s"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+
+    <link href="/static/mystyle.css" rel="stylesheet" />
+
+    <script src="/socket.io/socket.io.js" > </script>
+    <script src="https://cdn.socket.io/3.1.3/socket.io.min.js" integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh" crossorigin="anonymous"></script>
+
+
+
+    <title>DETAIL PAGE</title>
+    <script>
+      const queryString = window.location.search;
+      const urlParams = new URLSearchParams(queryString);
+      const postId = urlParams.get("postId");
+
+
+
+      // const socket = io("ws://localhost:3000");
+      const socket = io("http://3.35.135.83:3000");
+
+        socket.on("connect", () => {
+          // console.log(localStorage.getItem("username"), " connected!")
+          socket.send("connect!");
+        })
+
+        socket.on("disconnect", () => {
+          socket.send("disconnedted!");
+        })
+
+        socket.on("message", (data) => {
+          // console.log(data);
+        })
+
+        socket.on("customEventName", (data) => {
+          // console.log("custom event name: ", data);
+        })
+
+        socket.on("someonePosted", (data) => {
+          alert(`${data.name} made ${data.title}`);
+        });
+
+        socket.on("someoneCommented", (data) => {
+          let comment = data.comment.split("@");
+
+          if (comment.length == 2) {
+            comment = comment[1].split(" ")[0];
+
+            if (comment == localStorage.getItem('username')) {
+              alert(`${data.username} mentioned you in: ${data.title}`);
+            } else if (data.postuser == localStorage.getItem("username")) {
+              alert(`${data.username} commented my post: ${data.title}`);
+            }
+          }
+          if (data.postuser == localStorage.getItem("username")) {
+              alert(`${data.username} commented my post: ${data.title}`);
+          }
+        });
+
+
+
+
+
+      $(document).ready(function() {
+        if (!localStorage.getItem('token')) {
+          $('#commentinput').attr('disabled', true);
+          $('#commentinput').attr('placeholder', 'you can use after login');
+          $('#submitbtn').attr('disabled', true);
+
+          $('#modifybtn').hide();
+        }
+
+        $('#submitbtn').show();
+        $('#commentmodifybtn').hide();
+
+        get_detail();
+        get_comments();
+      })
+
+      function get_detail() {
+        $.ajax({
+            type: "GET",
+            url: `/api/posts/${postId}`,
+            data: {},
+            headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
+            error: function(xhr, status, error) {
+              if (status == 404) alert("not exist");
+
+              window.location.href = "/";
+            },
+            success: function(response) {
+              let postDetail = response['detail'];
+              let d = new Date(postDetail.date);
+              let today = String(d.getFullYear()) + " " + String(d.getMonth() + 1) + " " + String(d.getDate());
+
+              let temp_html = ` <h2 id="detail_title">${postDetail.title}</h2>
+                                <p id="detail_name">by ${postDetail.name}</p>
+                                <p id="detail_today">at ${today}</p>
+                                <p id="detail_post">${postDetail.post}</p>
+                              `;
+
+              $(".content").append(temp_html);
+            }
+          })
+      }
+
+      function get_comments() {
+        $.ajax({
+          type: "GET",
+          url: `/api/comments/${postId}`,
+          data: {},
+          headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
+          success: function(response) {
+            const comments = response['comments']
+
+            for (let i = comments.length - 1; i >= 0; i --) {
+              make_comments(comments[i]);
+            }
+          }
+        })
+      }
+
+      function put_comment() {
+        const comment = $('#commentinput').val();
+
+        if (comment == "" ) {
+          alert("don't put empty comment");
+
+          return;
+        }
+
+        $.ajax({
+          type: "POST",
+          url: `/api/comments/${postId}`,
+          data: {comment: comment},
+          headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
+          success: function(response) {
+            const current_location = `/${window.location.href.split("/")[3]}`;
+
+            // ?? commented to my post ?? + url
+            socket.emit("commented", { 
+              username: localStorage.getItem("username"),
+              url: current_location,
+              title: $('#detail_title').text(),
+              postuser: $('#detail_name').text().split(" ")[1],
+              comment: comment,
+            });
+
+            window.location.reload();
+          }
+        });
+      }
+
+      function modify() {
+        window.location.href=`/makepost?postId=${postId}`;
+      }
+
+      function make_comments(comment) {
+        const commentId = comment.commentId;
+        const username = comment.userName;
+        let date = new Date(comment.date);
+        date = String(date.getFullYear()) + " " + String(date.getMonth() + 1) + " " + String(date.getDate());
+        const com = comment.comment;
+
+        let temp_html;
+        if (username == localStorage.getItem("username")) {
+          temp_html = `
+            <li>
+              ${username} at ${date}: ${com} 
+              <button onclick="get_comment('${commentId}')">modify</button>
+              <button onclick="delete_comment('${commentId}')">delete</button>
+            </li>`;
+        } else {
+          temp_html = `
+            <li>
+              ${username} at ${date}: ${com}
+            </li>`;
+        }
+        
+
+        $('#comments').append(temp_html);
+      }
+
+      function get_comment(commentId) {
+        $.ajax({
+          type: "GET",
+          url: `/api/comments/one/${commentId}`,
+          data: {},
+          headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
+          success: function(response) {
+            if (response['errorMessage']) {
+              alert(response['errorMessage']);
+
+              return;
+            }
+
+            const comment = response['comment'];
+
+            $('#commentinput').val(comment['comment']);
+            $('#submitbtn').hide();
+            $('#commentmodifybtn').show();
+
+            $('#commentid_p').text(commentId);
+          }
+        })
+        
+      }
+
+      function modify_comment() {
+        const commentId = $('#commentid_p').text();
+        const comment = $('#commentinput').val();
+
+        if (!comment) {
+          alert("empty");
+
+          return;
+        }
+
+        $.ajax({
+          type: "PATCH",
+          url: `/api/comments/${postId}`,
+          data: { commentId: commentId, comment: comment },
+          headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
+            success: function(response) {
+              if (response['errorMessage']) {
+                alert(response['errorMessage']);
+              }
+
+              $('#submitbtn').show();
+              $('#commentmodifybtn').hide();
+
+              window.location.reload();
+            }
+        })
+      }
+
+      function delete_comment(commentId) {
+        const res = confirm("You really want to delete this comment?");
+
+        if (res) {
+          $.ajax({
+            type: "DELETE",
+            url: `/api/comments/${postId}`,
+            data: { commentId: commentId },
+            headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
+            success: function(response) {
+              if (response['errorMessage']) {
+                alert(response['errorMessage']);
+              }
+
+              window.location.reload();
+            }
+          })
+        }
+      }
+
+      function inputclick() {
+        if ($('#commentinput').attr('placeholder')) {
+          alert("You need to login");
+
+          window.location.href = "/login";
+        }
+      }
+    </script>
+</head>
+<body>
+    <h3 style="text-align: left;" onclick="window.location.href='/'">Go to main</h3>
+    <h1>Detail with post no <%= postId %> </h1>
+    <div class="content">
+      
+    </div>
+
+    <button id="modifybtn" onclick=modify()>Modify</button>
+
+    <div id="makecomment">
+      <div onclick="inputclick()"><input type="text" id="commentinput"> </div>
+      <button id="submitbtn" onclick="put_comment()">Submit</button>
+      <button id="commentmodifybtn" onclick="modify_comment()">Modify</button>
+    </div>
+    <p id="commentid_p" style="display: none;"></p>
+    <ul id="comments">
+
+    </ul>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"
+        integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+
+    <!-- Font Awesome CSS -->
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.js"
+        integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+        integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js"
+        integrity="sha384-w1Q4orYjBQndcko6MimVbzY0tgp4pWB4lZ7lr30WKz0vr/aWKhXdBNmNb5D92v7s"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.4.0/socket.io.js"></script>
+    <link href="/static/mystyle.css" rel="stylesheet" />
+
+    <script src="/socket.io/socket.io.js" > </script>
+
+    <title>Post Lists</title>
+    <script>
+        const socket = io("ws://localhost:3000");
+        // const socket = io("http://3.35.135.83");
+
+        socket.on("connect", () => {
+            socket.send("connect!");
+        })
+
+        socket.on("disconnect", () => {
+            socket.send("disconnedted!");
+        })
+
+        socket.on("message", (data) => {
+            // console.log(data);
+        })
+
+        socket.on("customEventName", (data) => {
+            // console.log("custom event name: ", data);
+        })
+
+        socket.on("someonePosted", (data) => {
+            alert(`${data.name} made ${data.title}`);
+        });
+
+        socket.on("someoneCommented", (data) => {
+          let comment = data.comment.split("@");
+
+          if (comment.length == 2) {
+            comment = comment[1].split(" ")[0];
+
+            if (comment == localStorage.getItem('username')) {
+              alert(`${data.username} mentioned you in: ${data.title}`);
+            } else if (data.postuser == localStorage.getItem("username")) {
+              alert(`${data.username} commented my post: ${data.title}`);
+            }
+          }
+          if (data.postuser == localStorage.getItem("username")) {
+              alert(`${data.username} commented my post: ${data.title}`);
+          }
+        });
+
+
+
+
+
+
+        $(document).ready(function () {
+            if (localStorage.getItem("token")) {
+                $('#loginbtn').hide();
+                $('#logoutbtn').show();
+                $('#registerbtn').hide();
+                $('#makepostbtn').show();
+                $('#chatbtn').show();
+            } else {
+                $('#loginbtn').show();
+                $('#logoutbtn').hide();
+                $('#registerbtn').show();
+                $('#makepostbtn').hide();
+                $('#chatbtn').hide();
+            }
+            
+            get_posts();
+        });
+
+        function get_posts() {
+            $('#postsList').empty();
+
+            $.ajax({
+                type: "GET",
+                url: "/api/posts",
+                data: {},
+                headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
+                success: function (response) {
+                    let posts = response['posts'];
+                    for (let i = 0; i < posts.length; i ++) {
+                        make_post(posts[i])
+                    }
+                }
+
+            })
+
+        }
+        
+        function make_post(item) {
+            let d = new Date(item['date']); //Json String to Date
+            let today = String(d.getFullYear()) + " " + String(d.getMonth() + 1) + " " + String(d.getDate());
+
+            let temp_html = `
+                <div class="post-card" onclick="location.href='/detail?postId=${item['postId']}'">
+                    <p><span class="title">${item['title']}</span> by <span class="name">${item['name']}</span>
+                    <br>
+                    at ${today}<p/>
+                </div>
+                `;
+
+            $('#postsList').append(temp_html);
+        }
+
+        function logout() {
+            localStorage.clear();
+            
+            window.location.reload();
+        }
+
+
+    </script>
+</head>
+<body>
+    <h1>INDEX!</h1>
+    <div>
+        <button id="makepostbtn" onclick="window.location.href='/makepost'">Make Post</button>
+        <button id="loginbtn" onclick="window.location.href='/login'">login</button>
+        <button id="logoutbtn" onclick="logout()">logout</button>
+        <button id="registerbtn" onclick="window.location.href='/register'">register</button>
+        <button id="chatbtn" onclick="window.location.href='/chat'">chat</button>
+
+    </div>
+    <div id="postsList">
+
+    </div>
+</body>
+</html>

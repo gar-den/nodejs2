@@ -1,0 +1,54 @@
+
+
+body {
+    text-align: center;
+}
+.post-card {
+    border: 2px solid black;
+    margin-top: 10px;
+    margin-left: auto;
+    margin-right: auto;
+
+    vertical-align: center;
+    background-color:lightsteelblue;
+
+    width: 300px;
+}
+.title {
+    font-weight: bold;
+}
+.name {
+    font-weight: bold;
+}
+
+.content {
+    text-align: center;
+}
+
+.content p {
+    text-align: center;
+}
+
+#detail_title {
+    color:teal;
+}
+
+#detail_name {
+
+}
+
+#detail_today {
+
+}
+
+#detail_post {
+    border: 3px solid teal;
+    border-radius: 15px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 10px;
+
+    width: 80%;
+    height: 200px;
+
+}

@@ -1,0 +1,36 @@
+{
+  "name": "garden",
+  "version": "1.0.0",
+  "description": "study typescript",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "gar-den",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "cheerio": "^1.0.0-rc.10",
+    "ejs": "^3.1.6",
+    "express": "^4.17.1",
+    "iconv-lite": "^0.6.3",
+    "joi": "^17.4.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.13.2",
+    "socket.io": "^4.1.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gar-den/typescript.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gar-den/typescript/issues"
+  },
+  "homepage": "https://github.com/gar-den/typescript#readme",
+  "devDependencies": {
+    "jest": "^27.0.6",
+    "prettier": "^2.3.2",
+    "prettify": "^0.1.7"
+  }
+}
